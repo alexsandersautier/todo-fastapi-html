@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO - FastAPI / Ajax</title>
+    <link rel="icon" href="logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+<body>
+    <div class="container-fluid w-100 vh-100 d-flex justify-content-center align-items-center">
+        <div class="container">
+            <div class="row">
+                <h1 class="text-center">Informe os dados para cadastro</h1>
+            </div>
+            <div class="row">
+                Usuário
+                <input type="text" class="form-control" id="username" onfocusout="validate(this)">
+            </div>
+            <div id="erroUsername"></div>
+            <div class="row mt-3">
+                Senha
+                <input type="password" class="form-control" id="password" onfocusout="validate(this)">
+            </div>
+            <div id="erroPassoword"></div>
+            <div class="row mt-3">
+                Confirmar senha
+                <input type="password" class="form-control" id="confirmPassword" onfocusout="validate(this)">
+            </div>
+            <div id="erroConfirmPassoword"></div>
+            <div class="row mt-3">
+                <button type="button" class="btn btn-success" onclick="register()">Cadastrar</button>
+            </div>
+            <div class="row mt-2">
+                <a href="index.html" class="link-secondary">Fazer login</a>
+            </div>
+            <div class="row mt-4">
+                <div id="liveAlertPlaceholder"></div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>    
+    <script>
+        const alertPlaceholder = document.getElementById('liveAlertPlaceholder')
+        const appendAlert = (message, type) => {
+            const wrapper = document.createElement('div')
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+                `   <div>${message}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('')
+
+            alertPlaceholder.append(wrapper)
+        }
+        function validate(e) {
+            let spanError = '<span class="text-danger">*Campo obrigatório</span>'
+            switch (e.getAttribute('id')) {
+                case 'username':
+                    const divErrorUsername = document.getElementById('erroUsername')
+                    !e.value ? divErrorUsername.innerHTML = spanError : divErrorUsername.style.display = 'none'
+                    break
+                case 'password':
+                    const divErrorPassoword = document.getElementById('erroPassoword')
+                    !e.value ? divErrorPassoword.innerHTML = spanError : divErrorPassoword.style.display = 'none'
+                    break
+                case 'confirmPassword':
+                    const divErroConfirmPassoword = document.getElementById('erroConfirmPassoword')
+                    const passowrd = document.getElementById('password').value
+                    if (e.value !== passowrd) {
+                        spanError = '<span class="text-danger">*Senha difere da anterior</span>'
+                    }  
+                    (!e.value || e.value !== passowrd) ? divErroConfirmPassoword.innerHTML = spanError : divErrorPassoword.style.display = 'none'
+                default:
+                    break
+            }
+        }
+
+        function getToken(username) {
+            try {
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/getToken?username=' + username,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    async: true,
+                    success: (response) => {
+                        if (response) {
+                            localStorage.setItem('token', response)
+                        }
+                    }
+                })
+                return true
+            } catch (error) {
+                return false
+            }
+        }
+
+        function register() {
+            const username = document.getElementById('username')
+            const password = document.getElementById('password')
+            const confirmPassword = document.getElementById('confirmPassword')
+            if (!username.value) validate(username)
+            if (!password.value) validate(password)
+            if (!confirmPassword.value) validate(confirmPassword)
+            if (!username.value || !password.value || !confirmPassword.value) return
+            $.ajax({
+                url: 'http://127.0.0.1:8000/register',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    username: username.value,
+                    password: password.value
+                }),
+                async: true,
+                success: async (response) => {
+                    switch (response) {
+                        case 0:
+                            appendAlert('Cadastro realizado com sucesso, redirecionando', 'success')
+                            
+                            setTimeout(() => {
+                                document.getElementById('liveAlertPlaceholder').innerHTML = ''
+                            }, 1500)
+                            
+                            const get_token = await getToken(username.value)
+                            if (get_token) {
+                                setTimeout(() => {
+                                    window.location.href = 'home.html'
+                                }, 500)
+                            }
+                            break
+                        case 1:
+                            appendAlert('Usuário já cadastrado, faça o login', 'warning')
+                            setTimeout(() => {
+                                document.getElementById('liveAlertPlaceholder').innerHTML = ''
+                            }, 1800)
+                            break
+                        case 2:
+                            appendAlert('Dados inválidos', 'warning')
+                            setTimeout(() => {
+                                document.getElementById('liveAlertPlaceholder').innerHTML = ''
+                            }, 1800)
+                            break
+                        case 3:
+                            appendAlert('erro interno', 'danger')
+                            setTimeout(() => {
+                                document.getElementById('liveAlertPlaceholder').innerHTML = ''
+                            }, 1800)
+                            break
+                        default:
+                            break
+                    }
+                }
+            })
+        }
+    </script>
+</body>
+</html>

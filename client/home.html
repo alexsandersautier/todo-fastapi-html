@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO - FastAPI / Ajax</title>
+    <link rel="icon" href="logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+</head>
+
+<body>
+    <div class="container-fluid w-100 vh-100">
+        <div class="container">
+            <header class="row">
+                <button class="btn text-end" type="button" onclick="exit()">
+                    <i class="bi bi-box-arrow-right fs-1"></i>
+                </button>
+            </header>
+            <div class="row">
+                <form action="" class="form">
+                    <div class="form-group">
+                        <label for="newTask" class="form-label">Nova tarefa</label>
+                        <input type="text" class="form-control" id="newTask" required>
+                        <input type="submit" class="btn btn-success mt-2" value="Adicionar">
+                    </div>
+                </form>
+            </div>
+            <div class="row mt-4">
+                <table class="table table-striped">
+                    <legend>Lista de tarefas</legend>
+                    <thead>
+                        <tr>
+                            <th scope="col">Tarefa</th>
+                            <th scope="col">Completa</th>
+                            <th scope="col">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableData">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <script>
+        const token = localStorage.getItem('token')
+        function getAll() {
+            $.ajax({
+                url: 'http://127.0.0.1:8000/tasks?token='+token,
+                method: 'GET',
+                contentType: 'application/json',
+                async: true,
+                success: (response) => {
+                    if (response == 1) {
+                        alert('Token expirado, faça login novamente')
+                        exit()
+                    } else {
+                        response.forEach(element => {
+                            addTask(element)
+                        });
+                    }
+                }
+            })
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            getAll()
+        })
+
+
+        function exit() {
+            try {
+                localStorage.removeItem('token')
+                window.location.href = 'index.html'
+            } catch (error) {
+                console.log(error)
+            }
+        }
+
+        function addTask(task) {
+            const tableBody = document.getElementById('tableData')
+            const row = document.createElement('tr')
+            const colTask = document.createElement('td')
+            colTask.innerText = task.description
+            const colCompleted = document.createElement('td')
+            colCompleted.innerText = task.completed ? 'SIM' : 'NÃO'
+            const colAction = document.createElement('td')
+            colAction.innerHTML = '<button class="btn btn-success" onclick="setCompleted('+task.id+')">Marcar como concluída</button>'
+            row.appendChild(colTask)
+            row.appendChild(colCompleted)
+            row.appendChild(colAction)
+            tableBody.appendChild(row)
+        }
+
+        function setCompleted(id) {
+            $.ajax({
+                url: 'http://127.0.0.1:8000/task?task_id='+id+'&token='+token,
+                method: 'PUT',
+                contentType: 'application/json',
+                async: true,
+                success: (response) => {
+                    if (response == 1) {
+                        alert('Token expirado, faça login novamente')
+                        exit()
+                    } else {
+                        const tableBody = document.getElementById('tableData')
+                        tableBody.innerHTML = ''
+                        getAll()
+                    }
+                }
+            })
+        }
+
+        const form = document.getElementsByClassName('form')[0]
+        form.addEventListener('submit', (event) => {
+            event.preventDefault()
+            const task = document.getElementById('newTask')
+            const tasks = []
+            if (token) {
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/task?description=' + task.value + '&token=' + token,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    async: true,
+                    success: (response) => {
+                        if (response == 1) {
+                            alert('Token expirado, faça login novamente')
+                            exit()
+                        } else {
+                            addTask(response)
+                            task.innerText = null
+                        }
+                    }
+                })
+            }
+        })
+    </script>
+</body>
+
+</html>
